@@ -1,0 +1,240 @@
+{
+  "info": {
+    "_postman_id": "d0c11f82-b405-41ef-a6d0-117007a26ce0",
+    "name": "Smart Home API",
+    "description": "### Welcome to Postman! This is your first collection. \n\nCollections are your starting point for building and testing APIs. You can use this one to:\n\n• Group related requests\n• Test your API in real-world scenarios\n• Document and share your requests\n\nUpdate the name and overview whenever you’re ready to make it yours.\n\n[Learn more about Postman Collections.](https://learning.postman.com/docs/collections/collections-overview/)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52951815",
+    "_collection_link": "https://go.postman.co/collection/52951815-d0c11f82-b405-41ef-a6d0-117007a26ce0?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "POST /api/v1/devices",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code === 201) {\r",
+              "    const response = pm.response.json();\r",
+              "    pm.collectionVariables.set('deviceId', response.id);\r",
+              "    console.log('Device created with ID:', response.id);\r",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"name\": \"Living Room Light\",\r\n  \"type\": \"light\",\r\n  \"room\": \"living_room\",\r\n  \"metadata\": {\r\n    \"brand\": \"Philips\",\r\n    \"model\": \"Hue\"\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/devices",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "devices"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PATCH /api/v1/devices/{deviceId}/state",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"command\": \"turn_on\",\r\n  \"parameters\": {\r\n    \"brightness\": 80,\r\n    \"transition_ms\": 500\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/devices/{{deviceId}}/state?deviceId={{deviceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "devices",
+            "{{deviceId}}",
+            "state"
+          ],
+          "query": [
+            {
+              "key": "deviceId",
+              "value": "{{deviceId}}",
+              "description": "ID устройства (подставится из переменной)",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET /api/v1/telemetry/devices/{deviceId}/current",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/telemetry/devices/{{deviceId}}/current?deviceId={{deviceId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "telemetry",
+            "devices",
+            "{{deviceId}}",
+            "current"
+          ],
+          "query": [
+            {
+              "key": "deviceId",
+              "value": "{{deviceId}}",
+              "description": "ID датчика"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST /api/v1/scenarios/{scenarioId}/execute",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"dry_run\": false,\r\n  \"context\": {\r\n    \"source\": \"manual\",\r\n    \"reason\": \"testing\"\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/scenarios/{{scenarioId}}/execute?scenarioId={{scenarioId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "scenarios",
+            "{{scenarioId}}",
+            "execute"
+          ],
+          "query": [
+            {
+              "key": "scenarioId",
+              "value": "{{scenarioId}}",
+              "description": "ID сценария"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST /api/v1/notifications/send",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"userId\": \"{{userId}}\",\r\n  \"channel\": \"push\",\r\n  \"title\": \"Движение в гостиной\",\r\n  \"body\": \"Датчик движения обнаружил активность в 22:30\",\r\n  \"priority\": \"high\",\r\n  \"data\": {\r\n    \"deviceId\": \"{{deviceId}}\",\r\n    \"room\": \"living_room\"\r\n  }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/notifications/send",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "send"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
