@@ -179,8 +179,8 @@
 *   **[AsyncAPI (Kafka события) спецификация] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/asyncapi/asyncapi.yaml)**
 *   **[gRPC (Protocol Buffers) определения] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/tree/main/proto)**
 *   **[Пошаговые сценарии использования] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/tree/main/docs)**
-*   **[Postman коллекция для тестирования] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/postman/smart-home-api.postman_collection.json)**
-*   
+*   **[Postman коллекция для тестирования] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/postman/Smart%20Home%20API.postman_collection.json)**
+*   **[Postman окружение для тестирования] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/postman/Smart%20Home%20API.postman_environment.json)**
 # Задание 5. Работа с docker и docker-compose
 
 Перейдите в apps.
