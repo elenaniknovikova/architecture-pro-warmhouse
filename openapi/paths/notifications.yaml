@@ -1,0 +1,37 @@
+paths:
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Получить историю уведомлений
+      description: Возвращает список уведомлений пользователя с возможностью фильтрации
+      operationId: getNotifications
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: unread_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [push, email, sms, in_app]
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:

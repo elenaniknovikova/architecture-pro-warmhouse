@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package auth;
+option go_package = "./proto/auth;auth";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service AuthService {
+    // Проверка токена
+    rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+    
+    // Проверка прав доступа
+    rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+    
+    // Проверка прав на сценарий
+    rpc CheckScenarioPermission(CheckScenarioPermissionRequest) returns (CheckScenarioPermissionResponse);
+    
+    // Получение предпочтений пользователя
+    rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
+}
+
+message ValidateTokenRequest {
+    string token = 1;                    // JWT токен для проверки
+    string required_permission = 2;       // опционально: требуемое право
+}
+
+message ValidateTokenResponse {
+    bool valid = 1;                       // результат проверки
+    string user_id = 2;                    // ID пользователя
+    string tenant_id = 3;                   // ID тенанта (для мультитенантности)
+    repeated string roles = 4;               // роли пользователя
+    repeated string permissions = 5;          // разрешения
+    map<string, string> metadata = 6;         // дополнительные данные
+}
+
+message CheckPermissionRequest {
+    string user_id = 1;                    // ID пользователя
+    string resource = 2;                    // ресурс (например "device:dev-123")
+    string action = 3;                       // действие ("update", "delete", "control")
+    map<string, string> context = 4;          // доп. контекст (опционально)
+}
+
+message CheckPermissionResponse {
+    bool allowed = 1;                        // разрешено/запрещено
+    string reason = 2;                        // причина запрета (если allowed = false)
+    repeated string grants = 3;                // какие права сработали
+    int32 ttl_seconds = 4;                     // время жизни проверки (для кэширования)
+}
+
+message CheckScenarioPermissionRequest {
+    string user_id = 1;
+    string scenario_id = 2;
+    string action = 3;                         // "execute", "edit", "delete"
+}
+
+message CheckScenarioPermissionResponse {
+    bool allowed = 1;
+    string reason = 2;
+    repeated string permissions = 3;
+}
+
+message GetUserPreferencesRequest {
+    string user_id = 1;
+    repeated string preference_categories = 2;    // опционально
+}
+
+message GetUserPreferencesResponse {
+    string user_id = 1;
+    map<string, ChannelPreferences> channels = 2;
+    map<string, CategoryPreferences> categories = 3;
+    google.protobuf.Timestamp updated_at = 4;
+}
+
+message ChannelPreferences {
+    bool enabled = 1;
+    string quiet_hours_start = 2;
+    string quiet_hours_end = 3;
+    string address = 4;                           // email, phone и т.д.
+}
+
+message CategoryPreferences {
+    bool push = 1;
+    bool email = 2;
+    bool sms = 3;
+    bool in_app = 4;
+    string min_priority = 5;                       // "low", "normal", "high", "urgent"
+}

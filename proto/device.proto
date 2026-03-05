@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package device;
+option go_package = "./proto/device;device";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service DeviceService {
+    // Получение устройства по ID
+    rpc GetDevice(GetDeviceRequest) returns (Device);
+    
+    // Получение списка устройств
+    rpc GetDevicesBatch(GetDevicesBatchRequest) returns (GetDevicesBatchResponse);
+    
+    // Получение списка устройств пользователя
+    rpc GetUserDevices(GetUserDevicesRequest) returns (GetUserDevicesResponse);
+    
+    // Обновление статуса устройства
+    rpc UpdateDeviceStatus(UpdateDeviceStatusRequest) returns (Device);
+}
+
+message Device {
+    string device_id = 1;
+    string name = 2;
+    string type = 3;                                 // "light", "thermostat", "sensor", "camera"
+    string room = 4;
+    string status = 5;                               // "online", "offline", "error"
+    string user_id = 6;
+    google.protobuf.Struct metadata = 7;
+    google.protobuf.Timestamp last_seen = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+    bool online = 11;
+}
+
+message GetDeviceRequest {
+    string device_id = 1;
+    string user_id = 2;                               // для проверки прав
+}
+
+message GetDevicesBatchRequest {
+    repeated string device_ids = 1;
+    bool check_online = 2;
+}
+
+message GetDevicesBatchResponse {
+    repeated Device devices = 1;
+}
+
+message GetUserDevicesRequest {
+    string user_id = 1;
+    string type = 2;                                  // фильтр по типу (опционально)
+    string room = 3;                                   // фильтр по комнате (опционально)
+}
+
+message GetUserDevicesResponse {
+    repeated Device devices = 1;
+    int32 total = 2;
+}
+
+message UpdateDeviceStatusRequest {
+    string device_id = 1;
+    string status = 2;
+    google.protobuf.Struct metadata = 3;
+}

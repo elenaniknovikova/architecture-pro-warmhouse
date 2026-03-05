@@ -1,0 +1,173 @@
+name: AutomationExecution
+title: Выполнение сценария
+summary: Сообщение о выполнении сценария автоматизации
+contentType: application/json
+headers:
+  type: object
+  properties:
+    schemaVersion:
+      type: string
+      example: "1.0.0"
+    correlationId:
+      type: string
+      example: "corr-456"
+payload:
+  type: object
+  required:
+    - eventId
+    - eventType
+    - scenarioId
+    - scenarioName
+    - userId
+    - timestamp
+    - trigger
+    - status
+  properties:
+    eventId:
+      $ref: '../../asyncapi.yaml#/components/schemas/EventId'
+    eventType:
+      type: string
+      description: Тип события
+      enum:
+        - scenario.executed
+        - scenario.failed
+        - scenario.completed
+        - scenario.started
+      example: "scenario.completed"
+    scenarioId:
+      $ref: '../../asyncapi.yaml#/components/schemas/ScenarioId'
+    scenarioName:
+      type: string
+      description: Название сценария
+      example: "Morning Light"
+    userId:
+      $ref: '../../asyncapi.yaml#/components/schemas/UserId'
+    timestamp:
+      $ref: '../../asyncapi.yaml#/components/schemas/Timestamp'
+    trigger:
+      type: string
+      description: Источник запуска
+      enum: [manual, schedule, event, sunrise, sunset]
+      example: "schedule"
+    status:
+      type: string
+      description: Статус выполнения
+      enum: [pending, running, completed, failed, partial]
+      example: "completed"
+    executionId:
+      type: string
+      description: Уникальный ID выполнения
+      example: "exec-789"
+    executionTime:
+      type: integer
+      description: Время выполнения в миллисекундах
+      example: 3200
+    actions:
+      type: array
+      description: Список выполненных действий
+      items:
+        type: object
+        properties:
+          type:
+            type: string
+            enum: [device_command, notification, delay, webhook]
+            example: "device_command"
+          deviceId:
+            $ref: '../../asyncapi.yaml#/components/schemas/DeviceId'
+          command:
+            type: string
+            example: "turn_on"
+          success:
+            type: boolean
+            example: true
+          duration_ms:
+            type: integer
+            example: 150
+    results:
+      type: object
+      description: Результаты выполнения
+      properties:
+        success_count:
+          type: integer
+          example: 2
+        failure_count:
+          type: integer
+          example: 0
+        summary:
+          type: string
+          example: "Все действия выполнены успешно"
+    metadata:
+      type: object
+      description: Дополнительные метаданные
+      properties:
+        source:
+          type: string
+          description: Источник
+          example: "mobile_app"
+        app_version:
+          type: string
+          description: Версия приложения
+          example: "2.3.4"
+        weather:
+          type: string
+          description: Погода в момент выполнения
+          example: "sunny"
+      additionalProperties: true
+
+examples:
+  - name: Scenario Completed Example
+    summary: Пример успешного выполнения сценария
+    payload:
+      eventId: "evt-exec-789"
+      eventType: "scenario.completed"
+      scenarioId: "scenario-123"
+      scenarioName: "Morning Light"
+      userId: "user-123"
+      timestamp: "2026-03-04T08:00:03Z"
+      trigger: "schedule"
+      status: "completed"
+      executionId: "exec-456"
+      executionTime: 3200
+      actions:
+        - type: "device_command"
+          deviceId: "light-bedroom"
+          command: "turn_on"
+          success: true
+          duration_ms: 150
+        - type: "notification"
+          success: true
+          duration_ms: 50
+      results:
+        success_count: 2
+        failure_count: 0
+        summary: "Все действия выполнены успешно"
+      metadata:
+        source: "mobile_app"
+        app_version: "2.3.4"
+
+  - name: Scenario Failed Example
+    summary: Пример неудачного выполнения сценария
+    payload:
+      eventId: "evt-exec-790"
+      eventType: "scenario.failed"
+      scenarioId: "scenario-456"
+      scenarioName: "Security Alert"
+      userId: "user-123"
+      timestamp: "2026-03-04T22:30:05Z"
+      trigger: "event"
+      status: "failed"
+      executionId: "exec-457"
+      executionTime: 1500
+      actions:
+        - type: "device_command"
+          deviceId: "sensor-living"
+          command: "turn_on"
+          success: false
+          error: "device offline"
+          duration_ms: 100
+      results:
+        success_count: 0
+        failure_count: 1
+        summary: "Ошибка: устройство не отвечает"
+      metadata:
+        source: "system"

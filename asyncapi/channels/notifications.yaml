@@ -1,0 +1,19 @@
+description: Канал для событий, требующих отправки уведомлений
+subscribe:
+  summary: Получение запросов на отправку уведомлений
+  operationId: onNotificationRequest
+  message:
+    $ref: '../components/messages/Notification.yaml'
+publish:
+  summary: Публикация статуса доставки уведомления
+  operationId: publishNotificationStatus
+  message:
+    $ref: '../components/messages/Notification.yaml'
+bindings:
+  kafka:
+    topic: notifications
+    partitions: 5
+    replicas: 1
+    topicConfiguration:
+      cleanup.policy: delete
+      retention.ms: 86400000 # 1 день

@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package integration;
+option go_package = "./proto/integration;integration";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service IntegrationService {
+    // Отправка команды на устройство
+    rpc SendCommand(SendCommandRequest) returns (SendCommandResponse);
+    
+    // Пакетная отправка команд
+    rpc BatchSendCommands(BatchSendCommandsRequest) returns (BatchSendCommandsResponse);
+    
+    // Чтение телеметрии с устройства
+    rpc ReadTelemetry(ReadTelemetryRequest) returns (ReadTelemetryResponse);
+    
+    // Получение статуса устройства
+    rpc GetDeviceStatus(GetDeviceStatusRequest) returns (DeviceStatus);
+}
+
+enum ExecutionMode {
+    SEQUENTIAL = 0;
+    PARALLEL = 1;
+}
+
+message Command {
+    string command_id = 1;
+    string device_id = 2;
+    string command = 3;                               // "turn_on", "turn_off", "set_brightness"
+    google.protobuf.Struct parameters = 4;
+    int32 priority = 5;                                // 0-100
+}
+
+message SendCommandRequest {
+    Command command = 1;
+    int32 timeout_ms = 2;
+}
+
+message SendCommandResponse {
+    bool success = 1;
+    string status = 2;                                 // "delivered", "pending", "failed"
+    int32 response_time_ms = 3;
+    google.protobuf.Struct result = 4;
+    string error = 5;
+}
+
+message BatchSendCommandsRequest {
+    repeated Command commands = 1;
+    ExecutionMode mode = 2;
+    int32 timeout_ms = 3;
+}
+
+message BatchSendCommandsResponse {
+    repeated CommandResult results = 1;
+    bool overall_success = 2;
+    int32 total_duration_ms = 3;
+}
+
+message CommandResult {
+    string command_id = 1;
+    bool success = 2;
+    string status = 3;
+    int32 response_time_ms = 4;
+    google.protobuf.Struct result = 5;
+    string error = 6;
+}
+
+message ReadTelemetryRequest {
+    string device_id = 1;
+    repeated string metrics = 2;
+    int32 timeout_ms = 3;
+}
+
+message ReadTelemetryResponse {
+    bool success = 1;
+    map<string, double> values = 2;
+    google.protobuf.Timestamp timestamp = 3;
+    int32 response_time_ms = 4;
+    string error = 5;
+}
+
+message GetDeviceStatusRequest {
+    string device_id = 1;
+}
+
+message DeviceStatus {
+    string device_id = 1;
+    bool online = 2;
+    google.protobuf.Struct state = 3;
+    google.protobuf.Timestamp last_seen = 4;
+    int32 signal_strength = 5;
+    string firmware_version = 6;
+}

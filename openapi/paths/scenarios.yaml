@@ -1,0 +1,581 @@
+paths:
+  /scenarios:
+    get:
+      tags:
+        - Scenarios
+      summary: Получить список сценариев
+      description: Возвращает список всех сценариев пользователя с возможностью фильтрации
+      operationId: listScenarios
+      parameters:
+        - name: only_enabled
+          in: query
+          description: Только активные сценарии
+          schema:
+            type: boolean
+            default: false
+        - name: search
+          in: query
+          description: Поиск по названию или описанию
+          schema:
+            type: string
+        - name: tags
+          in: query
+          description: Фильтр по тегам (через запятую)
+          schema:
+            type: string
+            example: "light,morning"
+        - name: page
+          in: query
+          description: Номер страницы
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: page_size
+          in: query
+          description: Размер страницы
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scenarios:
+                    type: array
+                    items:
+                      $ref: '../openapi.yaml#/components/schemas/Scenario'
+                  total:
+                    type: integer
+                    example: 42
+                  page:
+                    type: integer
+                    example: 1
+                  page_size:
+                    type: integer
+                    example: 20
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+
+    post:
+      tags:
+        - Scenarios
+      summary: Создать новый сценарий
+      description: Создаёт новый сценарий автоматизации
+      operationId: createScenario
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - triggers
+                - actions
+              properties:
+                name:
+                  type: string
+                  description: Название сценария
+                  example: "Morning Light"
+                description:
+                  type: string
+                  description: Описание сценария
+                  example: "Включить свет в спальне в 8 утра"
+                enabled:
+                  type: boolean
+                  description: Активен ли сценарий
+                  default: true
+                triggers:
+                  type: array
+                  description: Список триггеров запуска
+                  items:
+                    $ref: '../openapi.yaml#/components/schemas/Trigger'
+                conditions:
+                  type: array
+                  description: Дополнительные условия выполнения
+                  items:
+                    $ref: '../openapi.yaml#/components/schemas/Condition'
+                actions:
+                  type: array
+                  description: Действия при срабатывании
+                  items:
+                    $ref: '../openapi.yaml#/components/schemas/Action'
+                tags:
+                  type: object
+                  description: Теги для категоризации
+                  additionalProperties:
+                    type: string
+                  example:
+                    category: "lighting"
+                    room: "bedroom"
+      responses:
+        '201':
+          description: Сценарий создан
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Scenario'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '422':
+          description: Неверные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+
+  /scenarios/{scenarioId}:
+    get:
+      tags:
+        - Scenarios
+      summary: Получить сценарий по ID
+      description: Возвращает детальную информацию о сценарии
+      operationId: getScenarioById
+      parameters:
+        - name: scenarioId
+          in: path
+          required: true
+          description: ID сценария
+          schema:
+            type: string
+            example: "scenario-123"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Сценарий найден
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Scenario'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '404':
+          description: Сценарий не найден
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+
+    put:
+      tags:
+        - Scenarios
+      summary: Обновить сценарий
+      description: Обновляет существующий сценарий
+      operationId: updateScenario
+      parameters:
+        - name: scenarioId
+          in: path
+          required: true
+          description: ID сценария
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Новое название
+                description:
+                  type: string
+                  description: Новое описание
+                enabled:
+                  type: boolean
+                  description: Новый статус активности
+                triggers:
+                  type: array
+                  description: Новые триггеры
+                  items:
+                    $ref: '../openapi.yaml#/components/schemas/Trigger'
+                conditions:
+                  type: array
+                  description: Новые условия
+                  items:
+                    $ref: '../openapi.yaml#/components/schemas/Condition'
+                actions:
+                  type: array
+                  description: Новые действия
+                  items:
+                    $ref: '../openapi.yaml#/components/schemas/Action'
+                tags:
+                  type: object
+                  description: Новые теги
+                  additionalProperties:
+                    type: string
+      responses:
+        '200':
+          description: Сценарий обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Scenario'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '404':
+          description: Сценарий не найден
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Scenarios
+      summary: Удалить сценарий
+      description: Удаляет сценарий из системы
+      operationId: deleteScenario
+      parameters:
+        - name: scenarioId
+          in: path
+          required: true
+          description: ID сценария
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Сценарий удалён
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '404':
+          description: Сценарий не найден
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+
+  /scenarios/{scenarioId}/toggle:
+    patch:
+      tags:
+        - Scenarios
+      summary: Включить/выключить сценарий
+      description: Изменяет статус активности сценария
+      operationId: toggleScenario
+      parameters:
+        - name: scenarioId
+          in: path
+          required: true
+          description: ID сценария
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - enabled
+              properties:
+                enabled:
+                  type: boolean
+                  description: Новый статус активности
+                  example: true
+      responses:
+        '200':
+          description: Статус изменён
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Scenario'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '404':
+          description: Сценарий не найден
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+
+  /scenarios/{scenarioId}/execute:
+    post:
+      tags:
+        - Scenarios
+      summary: Запустить сценарий вручную
+      description: Выполняет сценарий немедленно (ручной запуск)
+      operationId: executeScenario
+      parameters:
+        - name: scenarioId
+          in: path
+          required: true
+          description: ID сценария
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dry_run:
+                  type: boolean
+                  description: Режим проверки без реального выполнения
+                  default: false
+                context:
+                  type: object
+                  description: Дополнительный контекст выполнения
+                  additionalProperties: true
+                  example:
+                    source: "manual"
+                    reason: "user_requested"
+      responses:
+        '200':
+          description: Сценарий запущен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  execution_id:
+                    type: string
+                    example: "exec-456"
+                  scenario_id:
+                    type: string
+                  scenario_name:
+                    type: string
+                  status:
+                    type: string
+                    enum: [completed, failed, partial, pending]
+                  started_at:
+                    type: string
+                    format: date-time
+                  completed_at:
+                    type: string
+                    format: date-time
+                  duration_ms:
+                    type: integer
+                  trigger:
+                    type: string
+                    enum: [manual, schedule, event]
+                  actions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        action_id:
+                          type: string
+                        type:
+                          type: string
+                        success:
+                          type: boolean
+                        message:
+                          type: string
+                        duration_ms:
+                          type: integer
+                  success_count:
+                    type: integer
+                  failure_count:
+                    type: integer
+                  summary:
+                    type: string
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '403':
+          description: Нет прав на выполнение
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '404':
+          description: Сценарий не найден
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+        '409':
+          description: Сценарий уже выполняется
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'
+
+  /executions:
+    get:
+      tags:
+        - Scenarios
+      summary: Получить историю выполнений
+      description: Возвращает историю выполнения сценариев
+      operationId: getExecutionHistory
+      parameters:
+        - name: scenario_id
+          in: query
+          description: Фильтр по ID сценария
+          schema:
+            type: string
+        - name: from
+          in: query
+          description: Начальная дата
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Конечная дата
+          schema:
+            type: string
+            format: date-time
+        - name: status
+          in: query
+          description: Фильтр по статусу
+          schema:
+            type: string
+            enum: [success, failed, partial, pending]
+        - name: limit
+          in: query
+          description: Количество записей
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: offset
+          in: query
+          description: Смещение
+          schema:
+            type: integer
+            default: 0
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: История получена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executions:
+                    type: array
+                    items:
+                      $ref: '../openapi.yaml#/components/schemas/ExecutionRecord'
+                  total:
+                    type: integer
+                    example: 156
+
+  /executions/{executionId}:
+    get:
+      tags:
+        - Scenarios
+      summary: Получить детали выполнения
+      description: Возвращает детальную информацию о выполнении сценария
+      operationId: getExecutionById
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          description: ID выполнения
+          schema:
+            type: string
+            example: "exec-456"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Информация о выполнении
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ExecutionRecord'
+        '404':
+          description: Выполнение не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/Error'

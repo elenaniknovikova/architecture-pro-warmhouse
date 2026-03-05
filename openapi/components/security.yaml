@@ -1,0 +1,1195 @@
+openapi: 3.0.0
+info:
+  title: Auth Service API
+  description: API для аутентификации, авторизации и управления пользователями
+  version: 1.0.0
+  contact:
+    name: Smart Home Team
+    email: dev@smarthome.com
+
+servers:
+  - url: https://api.smarthome.com/v1/auth
+    description: Production server
+  - url: http://localhost:8080/v1/auth
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: Регистрация, вход и выход из системы
+  - name: Users
+    description: Управление пользователями
+  - name: API Keys
+    description: Управление API-ключами для партнёров
+  - name: Roles
+    description: Управление ролями и разрешениями (администратор)
+
+paths:
+  /register:
+    post:
+      tags:
+        - Authentication
+      summary: Регистрация нового пользователя
+      description: Создаёт новую учётную запись пользователя
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Неверный формат запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Пользователь с таким email уже существует
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Неверные данные (пароль слишком простой и т.д.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /login:
+    post:
+      tags:
+        - Authentication
+      summary: Вход в систему
+      description: Аутентификация пользователя и получение JWT токена
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Неверный формат запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Неверный email или пароль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Аккаунт заблокирован или не подтверждён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Слишком много попыток входа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /logout:
+    post:
+      tags:
+        - Authentication
+      summary: Выход из системы
+      description: Инвалидация текущего токена
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Успешный выход
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Обновление токена
+      description: Получение новой пары токенов по refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  description: Refresh токен
+                  example: "eyJhbGciOiJIUzI1NiIs..."
+      responses:
+        '200':
+          description: Токены обновлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: Новый JWT токен
+                  refresh_token:
+                    type: string
+                    description: Новый refresh токен
+                  expires_in:
+                    type: integer
+                    description: Время жизни токена в секундах
+                    example: 3600
+        '400':
+          description: Неверный формат запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Недействительный refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /verify:
+    post:
+      tags:
+        - Authentication
+      summary: Подтверждение email
+      description: Подтверждает email пользователя по коду из письма
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - code
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email пользователя
+                code:
+                  type: string
+                  description: Код подтверждения из письма
+                  example: "123456"
+      responses:
+        '200':
+          description: Email подтверждён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Email verified successfully"
+        '400':
+          description: Неверный код
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /validate:
+    post:
+      tags:
+        - Authentication
+      summary: Проверка токена
+      description: Проверяет валидность JWT токена и возвращает информацию о пользователе
+      operationId: validateToken
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                required_permission:
+                  type: string
+                  description: Опционально — требуемое разрешение
+                  example: "devices:create"
+      responses:
+        '200':
+          description: Токен валиден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenValidationResponse'
+        '401':
+          description: Токен недействителен или истёк
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав (если указано required_permission)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Получить информацию о текущем пользователе
+      description: Возвращает профиль текущего авторизованного пользователя
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Users
+      summary: Обновить профиль пользователя
+      description: Обновляет информацию о текущем пользователе
+      operationId: updateCurrentUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name:
+                  type: string
+                  description: Полное имя
+                  example: "John Doe"
+                phone:
+                  type: string
+                  description: Номер телефона
+                  example: "+1234567890"
+                metadata:
+                  type: object
+                  description: Дополнительные данные
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Профиль обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Получить информацию о пользователе по ID
+      description: Возвращает информацию о пользователе (для администраторов)
+      operationId: getUserById
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID пользователя
+          schema:
+            type: string
+            example: "user-123"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Users
+      summary: Удалить пользователя
+      description: Удаляет учётную запись пользователя (для администраторов)
+      operationId: deleteUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID пользователя
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Пользователь удалён
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Получить список пользователей
+      description: Возвращает список всех пользователей (для администраторов)
+      operationId: listUsers
+      parameters:
+        - name: limit
+          in: query
+          description: Количество записей
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: offset
+          in: query
+          description: Смещение
+          schema:
+            type: integer
+            default: 0
+        - name: role
+          in: query
+          description: Фильтр по роли
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Поиск по email или имени
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+                    example: 156
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /apikeys:
+    get:
+      tags:
+        - API Keys
+      summary: Получить список API-ключей
+      description: Возвращает список API-ключей текущего пользователя
+      operationId: listApiKeys
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список API-ключей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/APIKey'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - API Keys
+      summary: Создать новый API-ключ
+      description: Создаёт новый API-ключ для интеграции с партнёрскими системами
+      operationId: createApiKey
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: Название ключа
+                  example: "Integration with Weather Service"
+                permissions:
+                  type: array
+                  description: Список разрешений
+                  items:
+                    type: string
+                  example: ["devices:read", "telemetry:read"]
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: Дата истечения (опционально)
+                  example: "2027-03-04T00:00:00Z"
+      responses:
+        '201':
+          description: Ключ создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKey'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /apikeys/{keyId}:
+    delete:
+      tags:
+        - API Keys
+      summary: Отозвать API-ключ
+      description: Удаляет (отзывает) API-ключ
+      operationId: revokeApiKey
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          description: ID ключа
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Ключ отозван
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Нет прав на удаление этого ключа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ключ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /apikeys/{keyId}/refresh:
+    post:
+      tags:
+        - API Keys
+      summary: Продлить API-ключ
+      description: Обновляет дату истечения API-ключа
+      operationId: refreshApiKey
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          description: ID ключа
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expires_at:
+                  type: string
+                  format: date-time
+                  description: Новая дата истечения
+      responses:
+        '200':
+          description: Ключ обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIKey'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ключ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /roles:
+    get:
+      tags:
+        - Roles
+      summary: Получить список ролей
+      description: Возвращает список всех ролей в системе (для администраторов)
+      operationId: listRoles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список ролей
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Role'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Roles
+      summary: Создать новую роль
+      description: Создаёт новую роль с набором разрешений (для администраторов)
+      operationId: createRole
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - permissions
+              properties:
+                name:
+                  type: string
+                  description: Название роли
+                  example: "guest"
+                description:
+                  type: string
+                  description: Описание роли
+                  example: "Guest user with limited access"
+                permissions:
+                  type: array
+                  description: Список разрешений
+                  items:
+                    type: string
+                  example: ["devices:read", "rooms:view"]
+      responses:
+        '201':
+          description: Роль создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /roles/{roleId}/assign:
+    post:
+      tags:
+        - Roles
+      summary: Назначить роль пользователю
+      description: Назначает роль указанному пользователю (для администраторов)
+      operationId: assignRole
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          description: ID роли
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  description: ID пользователя
+                  example: "user-123"
+      responses:
+        '204':
+          description: Роль назначена
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Пользователь или роль не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /roles/{roleId}/revoke:
+    post:
+      tags:
+        - Roles
+      summary: Отозвать роль у пользователя
+      description: Удаляет роль у указанного пользователя (для администраторов)
+      operationId: revokeRole
+      parameters:
+        - name: roleId
+          in: path
+          required: true
+          description: ID роли
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  description: ID пользователя
+                  example: "user-123"
+      responses:
+        '204':
+          description: Роль отозвана
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Пользователь или роль не найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /password-reset/request:
+    post:
+      tags:
+        - Authentication
+      summary: Запрос сброса пароля
+      description: Отправляет на email ссылку для сброса пароля
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  description: Email пользователя
+      responses:
+        '204':
+          description: Письмо отправлено (даже если email не найден)
+        '400':
+          description: Неверный формат email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Слишком много запросов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /password-reset/confirm:
+    post:
+      tags:
+        - Authentication
+      summary: Подтверждение сброса пароля
+      description: Устанавливает новый пароль по токену из письма
+      operationId: confirmPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - new_password
+              properties:
+                token:
+                  type: string
+                  description: Токен из письма
+                new_password:
+                  type: string
+                  description: Новый пароль
+                  minLength: 8
+      responses:
+        '200':
+          description: Пароль изменён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Password changed successfully"
+        '400':
+          description: Неверный токен или слабый пароль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Токен истёк или недействителен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор пользователя
+          example: "user-123"
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+          example: "user@example.com"
+        full_name:
+          type: string
+          description: Полное имя
+          example: "John Doe"
+        tenant_id:
+          type: string
+          description: ID тенанта (для мультитенантности)
+          example: "tenant-789"
+        phone:
+          type: string
+          description: Номер телефона
+          example: "+1234567890"
+        email_verified:
+          type: boolean
+          description: Подтверждён ли email
+          default: false
+        phone_verified:
+          type: boolean
+          description: Подтверждён ли телефон
+          default: false
+        roles:
+          type: array
+          description: Роли пользователя
+          items:
+            type: string
+          example: ["user", "premium"]
+        permissions:
+          type: array
+          description: Разрешения (агрегированные из ролей)
+          items:
+            type: string
+        metadata:
+          type: object
+          description: Дополнительные метаданные
+          additionalProperties: true
+          example:
+            country: "RU"
+            language: "ru"
+        created_at:
+          type: string
+          format: date-time
+          description: Дата регистрации
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата последнего обновления
+        last_login:
+          type: string
+          format: date-time
+          description: Дата последнего входа
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - full_name
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+          example: "user@example.com"
+        password:
+          type: string
+          description: Пароль (минимум 8 символов)
+          minLength: 8
+          example: "SecurePass123"
+        full_name:
+          type: string
+          description: Полное имя
+          example: "John Doe"
+        tenant_id:
+          type: string
+          description: ID тенанта (если мультитенантность)
+          example: "tenant-789"
+        phone:
+          type: string
+          description: Номер телефона
+          example: "+1234567890"
+        metadata:
+          type: object
+          description: Дополнительные данные
+          additionalProperties: true
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+        password:
+          type: string
+          description: Пароль
+
+    AuthResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: ID пользователя
+        access_token:
+          type: string
+          description: JWT токен доступа
+        refresh_token:
+          type: string
+          description: Токен для обновления доступа
+        expires_in:
+          type: integer
+          description: Время жизни токена в секундах
+          example: 3600
+        user:
+          $ref: '#/components/schemas/User'
+
+    TokenValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          description: Валиден ли токен
+        user_id:
+          type: string
+          description: ID пользователя
+        tenant_id:
+          type: string
+          description: ID тенанта
+        roles:
+          type: array
+          description: Роли пользователя
+          items:
+            type: string
+        permissions:
+          type: array
+          description: Разрешения пользователя
+          items:
+            type: string
+        metadata:
+          type: object
+          description: Дополнительные данные из токена
+
+    APIKey:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный ID ключа
+          example: "key-123"
+        name:
+          type: string
+          description: Название ключа
+          example: "Integration with Weather Service"
+        key:
+          type: string
+          description: Сам API-ключ (показывается только при создании)
+          example: "sk_live_abcdef123456"
+        user_id:
+          type: string
+          description: ID владельца
+        permissions:
+          type: array
+          description: Разрешения ключа
+          items:
+            type: string
+          example: ["devices:read", "telemetry:read"]
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания
+        expires_at:
+          type: string
+          format: date-time
+          description: Дата истечения
+        last_used:
+          type: string
+          format: date-time
+          description: Дата последнего использования
+        active:
+          type: boolean
+          description: Активен ли ключ
+          default: true
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID роли
+          example: "role-guest"
+        name:
+          type: string
+          description: Название роли
+          example: "guest"
+        description:
+          type: string
+          description: Описание роли
+        permissions:
+          type: array
+          description: Разрешения роли
+          items:
+            type: string
+          example: ["devices:read", "rooms:view"]
+        tenant_id:
+          type: string
+          description: ID тенанта (если роль специфична для клиента)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP код ошибки
+          example: 400
+        message:
+          type: string
+          description: Сообщение об ошибке
+          example: "Invalid request format"
+        details:
+          type: string
+          description: Дополнительные детали
+          example: "Missing required field: email"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен, полученный при аутентификации
+```

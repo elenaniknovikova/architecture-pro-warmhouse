@@ -1,0 +1,732 @@
+openapi: 3.0.0
+info:
+  title: Notification Service API
+  description: API для управления уведомлениями в системе умного дома
+  version: 1.0.0
+  contact:
+    name: Smart Home Team
+    email: dev@smarthome.com
+
+servers:
+  - url: https://api.smarthome.com/v1/notifications
+    description: Production server
+  - url: http://localhost:8086/api/v1
+    description: Local development server
+
+tags:
+  - name: Notifications
+    description: Управление уведомлениями
+  - name: Preferences
+    description: Настройки уведомлений пользователя
+  - name: Templates
+    description: Шаблоны уведомлений
+
+paths:
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Получить историю уведомлений
+      description: Возвращает список уведомлений пользователя с возможностью фильтрации
+      operationId: getNotifications
+      parameters:
+        - name: limit
+          in: query
+          description: Количество уведомлений на странице
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          description: Смещение для пагинации
+          schema:
+            type: integer
+            default: 0
+        - name: unread_only
+          in: query
+          description: Только непрочитанные уведомления
+          schema:
+            type: boolean
+            default: false
+        - name: channel
+          in: query
+          description: Фильтр по каналу доставки
+          schema:
+            type: string
+            enum: [push, email, sms, in_app]
+        - name: type
+          in: query
+          description: Фильтр по типу уведомления
+          schema:
+            type: string
+            enum: [motion_detected, device_offline, battery_low, door_open, scenario_completed, payment_success, weekly_report, security_alert]
+        - name: from
+          in: query
+          description: Начальная дата (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: "2026-03-01T00:00:00Z"
+        - name: to
+          in: query
+          description: Конечная дата (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+            example: "2026-03-04T23:59:59Z"
+        - name: priority
+          in: query
+          description: Фильтр по приоритету
+          schema:
+            type: string
+            enum: [low, normal, high, urgent]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  total:
+                    type: integer
+                    example: 156
+                  unread_count:
+                    type: integer
+                    example: 12
+                  limit:
+                    type: integer
+                    example: 50
+                  offset:
+                    type: integer
+                    example: 0
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/mark-read:
+    post:
+      tags:
+        - Notifications
+      summary: Отметить уведомления как прочитанные
+      description: Отмечает указанные уведомления или все уведомления как прочитанные
+      operationId: markNotificationsAsRead
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notification_ids:
+                  type: array
+                  description: Список ID уведомлений для отметки
+                  items:
+                    type: string
+                    example: "notif-123"
+                mark_all:
+                  type: boolean
+                  description: Отметить все уведомления как прочитанные
+                  default: false
+      responses:
+        '200':
+          description: Уведомления отмечены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  marked_count:
+                    type: integer
+                    example: 5
+                  unread_count:
+                    type: integer
+                    example: 7
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/{notificationId}:
+    get:
+      tags:
+        - Notifications
+      summary: Получить уведомление по ID
+      description: Возвращает детальную информацию об уведомлении
+      operationId: getNotificationById
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          description: ID уведомления
+          schema:
+            type: string
+            example: "notif-123"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Уведомление найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Уведомление не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Notifications
+      summary: Удалить уведомление
+      description: Удаляет уведомление из истории
+      operationId: deleteNotification
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          description: ID уведомления
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Уведомление удалено
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Доступ запрещён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Уведомление не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/preferences:
+    get:
+      tags:
+        - Preferences
+      summary: Получить настройки уведомлений
+      description: Возвращает текущие настройки уведомлений пользователя
+      operationId: getNotificationPreferences
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Настройки получены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Preferences
+      summary: Обновить настройки уведомлений
+      description: Обновляет настройки уведомлений пользователя
+      operationId: updateNotificationPreferences
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferences'
+      responses:
+        '200':
+          description: Настройки обновлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Не авторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /templates:
+    get:
+      tags:
+        - Templates
+      summary: Получить список шаблонов
+      description: Возвращает список доступных шаблонов уведомлений
+      operationId: listTemplates
+      parameters:
+        - name: channel
+          in: query
+          description: Фильтр по каналу
+          schema:
+            type: string
+            enum: [push, email, sms, in_app]
+        - name: locale
+          in: query
+          description: Фильтр по локали
+          schema:
+            type: string
+            example: "ru"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Список шаблонов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+                  total:
+                    type: integer
+
+    post:
+      tags:
+        - Templates
+      summary: Создать новый шаблон
+      description: Добавляет новый шаблон уведомления (для администраторов)
+      operationId: createTemplate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Шаблон создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /templates/{templateId}:
+    get:
+      tags:
+        - Templates
+      summary: Получить шаблон по ID
+      description: Возвращает информацию о шаблоне
+      operationId: getTemplateById
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          description: ID шаблона
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Шаблон найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '404':
+          description: Шаблон не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Templates
+      summary: Обновить шаблон
+      description: Обновляет существующий шаблон (для администраторов)
+      operationId: updateTemplate
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          description: ID шаблона
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '200':
+          description: Шаблон обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Шаблон не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Templates
+      summary: Удалить шаблон
+      description: Удаляет шаблон (для администраторов)
+      operationId: deleteTemplate
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          description: ID шаблона
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Шаблон удалён
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Шаблон не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор уведомления
+          example: "notif-123"
+        user_id:
+          type: string
+          description: ID пользователя
+          example: "user-123"
+        channel:
+          type: string
+          description: Канал доставки
+          enum: [push, email, sms, in_app]
+          example: "push"
+        type:
+          type: string
+          description: Тип уведомления
+          enum: [motion_detected, device_offline, battery_low, door_open, scenario_completed, payment_success, weekly_report, security_alert]
+          example: "motion_detected"
+        title:
+          type: string
+          description: Заголовок уведомления
+          example: "Движение в гостиной"
+        body:
+          type: string
+          description: Текст уведомления
+          example: "Датчик движения обнаружил активность в 22:30"
+        data:
+          type: object
+          description: Дополнительные данные
+          additionalProperties: true
+          example:
+            device_id: "sensor-living"
+            room: "living_room"
+            timestamp: "2026-03-03T22:30:00Z"
+        priority:
+          type: string
+          description: Приоритет уведомления
+          enum: [low, normal, high, urgent]
+          default: normal
+        status:
+          type: string
+          description: Статус доставки
+          enum: [pending, sent, delivered, read, failed]
+          example: "delivered"
+        read:
+          type: boolean
+          description: Прочитано ли уведомление
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          description: Время создания
+          example: "2026-03-03T22:30:05Z"
+        sent_at:
+          type: string
+          format: date-time
+          description: Время отправки
+        delivered_at:
+          type: string
+          format: date-time
+          description: Время доставки
+        read_at:
+          type: string
+          format: date-time
+          description: Время прочтения
+        template_id:
+          type: string
+          description: ID использованного шаблона
+          example: "template-123"
+
+    NotificationPreferences:
+      type: object
+      properties:
+        user_id:
+          type: string
+          description: ID пользователя
+        channels:
+          type: object
+          description: Настройки каналов
+          properties:
+            push:
+              $ref: '#/components/schemas/ChannelPreferences'
+            email:
+              $ref: '#/components/schemas/ChannelPreferences'
+            sms:
+              $ref: '#/components/schemas/ChannelPreferences'
+            in_app:
+              $ref: '#/components/schemas/ChannelPreferences'
+        categories:
+          type: object
+          description: Настройки категорий
+          additionalProperties:
+            type: object
+            properties:
+              push:
+                type: boolean
+                default: true
+              email:
+                type: boolean
+                default: false
+              sms:
+                type: boolean
+                default: false
+              in_app:
+                type: boolean
+                default: true
+              min_priority:
+                type: string
+                enum: [low, normal, high, urgent]
+                default: normal
+        updated_at:
+          type: string
+          format: date-time
+          description: Время последнего обновления
+
+    ChannelPreferences:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Включён ли канал
+          default: true
+        quiet_hours_start:
+          type: string
+          description: Начало тихого часа (HH:MM)
+          example: "22:00"
+        quiet_hours_end:
+          type: string
+          description: Конец тихого часа (HH:MM)
+          example: "08:00"
+        address:
+          type: string
+          description: Адрес для доставки (email, телефон)
+          example: "user@example.com"
+
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор шаблона
+          example: "template-123"
+        name:
+          type: string
+          description: Название шаблона
+          example: "motion_alert"
+        channel:
+          type: string
+          description: Канал уведомления
+          enum: [push, email, sms, in_app]
+        subject:
+          type: string
+          description: Тема (для email) или заголовок (для push)
+          example: "Движение в {{room}}"
+        body:
+          type: string
+          description: Тело уведомления
+          example: "Датчик движения обнаружил активность в {{time}}"
+        default_data:
+          type: object
+          description: Данные по умолчанию
+          additionalProperties: true
+        locale:
+          type: string
+          description: Язык шаблона
+          example: "ru"
+        created_at:
+          type: string
+          format: date-time
+          description: Время создания
+        updated_at:
+          type: string
+          format: date-time
+          description: Время обновления
+        is_active:
+          type: boolean
+          description: Активен ли шаблон
+          default: true
+
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - channel
+        - subject
+        - body
+      properties:
+        name:
+          type: string
+          description: Название шаблона
+          example: "motion_alert"
+        channel:
+          type: string
+          description: Канал уведомления
+          enum: [push, email, sms, in_app]
+        subject:
+          type: string
+          description: Тема или заголовок
+          example: "Движение в {{room}}"
+        body:
+          type: string
+          description: Тело уведомления
+          example: "Датчик движения обнаружил активность в {{time}}"
+        default_data:
+          type: object
+          description: Данные по умолчанию
+          additionalProperties: true
+        locale:
+          type: string
+          description: Язык шаблона
+          default: "ru"
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP код ошибки
+          example: 400
+        message:
+          type: string
+          description: Сообщение об ошибке
+          example: "Invalid request format"
+        details:
+          type: string
+          description: Дополнительные детали
+          example: "Missing required field: name"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен, полученный при аутентификации
+```

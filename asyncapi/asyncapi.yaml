@@ -1,0 +1,80 @@
+asyncapi: 2.6.0
+info:
+  title: Smart Home Events
+  version: 1.0.0
+  description: |
+    # Smart Home Events
+    
+    Асинхронные события экосистемы умного дома.
+    
+    ## Топики:
+    * **device-events** - события устройств (регистрация, статус, удаление)
+    * **automation-execution** - события выполнения сценариев
+    * **notifications** - события для отправки уведомлений
+    
+    ## Протоколы
+    Все события передаются через Apache Kafka.
+
+servers:
+  production:
+    url: kafka.smarthome.com:9092
+    protocol: kafka
+    description: Production Kafka cluster
+    security:
+      - saslScram: []
+
+  development:
+    url: localhost:9092
+    protocol: kafka
+    description: Local development Kafka
+
+channels:
+  device-events:
+    $ref: './channels/device-events.yaml'
+  
+  automation-execution:
+    $ref: './channels/automation-execution.yaml'
+  
+  notifications:
+    $ref: './channels/notifications.yaml'
+
+components:
+  securitySchemes:
+    saslScram:
+      type: scramSha256
+      description: SASL SCRAM-SHA-256 authentication
+
+  messages:
+    deviceEvent:
+      $ref: './components/messages/DeviceEvent.yaml'
+    automationExecution:
+      $ref: './components/messages/AutomationExecution.yaml'
+    notification:
+      $ref: './components/messages/Notification.yaml'
+
+  schemas:
+    Timestamp:
+      type: string
+      format: date-time
+      description: Временная метка в формате ISO 8601
+    
+    EventId:
+      type: string
+      description: Уникальный идентификатор события
+      pattern: '^evt-[a-zA-Z0-9]+$'
+      example: "evt-123"
+
+    UserId:
+      type: string
+      description: ID пользователя
+      example: "user-123"
+
+    DeviceId:
+      type: string
+      description: ID устройства
+      example: "dev-123"
+
+    ScenarioId:
+      type: string
+      description: ID сценария
+      example: "scenario-123"

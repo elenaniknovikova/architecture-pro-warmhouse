@@ -1,0 +1,126 @@
+name: DeviceEvent
+title: Событие устройства
+summary: Сообщение о событии, связанном с устройством
+contentType: application/json
+headers:
+  type: object
+  properties:
+    schemaVersion:
+      type: string
+      description: Версия схемы события
+      example: "1.0.0"
+    correlationId:
+      type: string
+      description: ID для связывания событий
+      example: "corr-123"
+payload:
+  type: object
+  required:
+    - eventId
+    - eventType
+    - deviceId
+    - userId
+    - timestamp
+  properties:
+    eventId:
+      $ref: '../../asyncapi.yaml#/components/schemas/EventId'
+    eventType:
+      type: string
+      description: Тип события
+      enum:
+        - device.created
+        - device.updated
+        - device.deleted
+        - device.online
+        - device.offline
+        - device.error
+        - device.status.changed
+        - device.config.updated
+      example: "device.created"
+    deviceId:
+      $ref: '../../asyncapi.yaml#/components/schemas/DeviceId'
+    deviceName:
+      type: string
+      description: Название устройства
+      example: "Living Room Light"
+    deviceType:
+      type: string
+      description: Тип устройства
+      enum: [thermostat, light, sensor, camera, gate, lock, outlet]
+      example: "light"
+    userId:
+      $ref: '../../asyncapi.yaml#/components/schemas/UserId'
+    timestamp:
+      $ref: '../../asyncapi.yaml#/components/schemas/Timestamp'
+    data:
+      type: object
+      description: Дополнительные данные события
+      properties:
+        old_status:
+          type: string
+          description: Предыдущий статус (для eventType=device.status.changed)
+          example: "offline"
+        new_status:
+          type: string
+          description: Новый статус (для eventType=device.status.changed)
+          example: "online"
+        reason:
+          type: string
+          description: Причина события
+          example: "user_action"
+        metadata:
+          type: object
+          description: Дополнительные метаданные
+          additionalProperties: true
+    metadata:
+      type: object
+      description: Метаданные события
+      properties:
+        source:
+          type: string
+          description: Источник события
+          enum: [device, user, system, integration]
+          example: "user"
+        version:
+          type: string
+          description: Версия прошивки устройства
+          example: "1.2.3"
+        ip:
+          type: string
+          description: IP-адрес устройства
+          example: "192.168.1.100"
+      additionalProperties: true
+
+examples:
+  - name: Device Created Example
+    summary: Пример события создания нового устройства
+    payload:
+      eventId: "evt-123"
+      eventType: "device.created"
+      deviceId: "dev-123"
+      deviceName: "Living Room Light"
+      deviceType: "light"
+      userId: "user-456"
+      timestamp: "2026-03-04T10:30:00Z"
+      data:
+        metadata:
+          brand: "Philips"
+          model: "Hue"
+          firmware: "1.2.3"
+      metadata:
+        source: "user"
+        version: "1.0.0"
+
+  - name: Device Status Changed Example
+    summary: Пример изменения статуса устройства
+    payload:
+      eventId: "evt-124"
+      eventType: "device.status.changed"
+      deviceId: "dev-123"
+      deviceName: "Living Room Light"
+      userId: "user-456"
+      timestamp: "2026-03-04T10:35:00Z"
+      data:
+        old_status: "offline"
+        new_status: "online"
+        reason: "device_connected"

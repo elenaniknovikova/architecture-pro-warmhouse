@@ -1,0 +1,189 @@
+name: Notification
+title: Уведомление
+summary: Сообщение для отправки уведомления пользователю
+contentType: application/json
+headers:
+  type: object
+  properties:
+    schemaVersion:
+      type: string
+      example: "1.0.0"
+    correlationId:
+      type: string
+      example: "corr-789"
+payload:
+  type: object
+  required:
+    - notificationId
+    - userId
+    - channel
+    - title
+    - body
+    - priority
+    - timestamp
+  properties:
+    notificationId:
+      type: string
+      description: Уникальный ID уведомления
+      pattern: '^notif-[a-zA-Z0-9]+$'
+      example: "notif-123"
+    userId:
+      $ref: '../../asyncapi.yaml#/components/schemas/UserId'
+    channel:
+      type: string
+      description: Канал доставки
+      enum: [push, email, sms, in_app]
+      example: "push"
+    type:
+      type: string
+      description: Тип уведомления
+      enum:
+        - motion_detected
+        - device_offline
+        - battery_low
+        - door_open
+        - scenario_completed
+        - payment_success
+        - weekly_report
+        - security_alert
+      example: "motion_detected"
+    title:
+      type: string
+      description: Заголовок уведомления
+      example: "Движение в гостиной"
+    body:
+      type: string
+      description: Текст уведомления
+      example: "Датчик движения обнаружил активность в 22:30"
+    priority:
+      type: string
+      description: Приоритет уведомления
+      enum: [low, normal, high, urgent]
+      default: normal
+      example: "high"
+    data:
+      type: object
+      description: Дополнительные данные для уведомления
+      properties:
+        device_id:
+          $ref: '../../asyncapi.yaml#/components/schemas/DeviceId'
+        room:
+          type: string
+          description: Комната
+          example: "living_room"
+        timestamp:
+          $ref: '../../asyncapi.yaml#/components/schemas/Timestamp'
+        report_url:
+          type: string
+          description: Ссылка на отчёт
+          format: uri
+          example: "https://api.smarthome.com/reports/week-08.pdf"
+        image_url:
+          type: string
+          description: Ссылка на изображение
+          format: uri
+          example: "https://api.smarthome.com/snapshots/camera-123.jpg"
+      additionalProperties: true
+    template:
+      type: string
+      description: Имя шаблона для рендеринга
+      example: "motion_alert"
+    template_data:
+      type: object
+      description: Данные для шаблона
+      additionalProperties: true
+      example:
+        room: "living_room"
+        time: "22:30"
+    timestamp:
+      $ref: '../../asyncapi.yaml#/components/schemas/Timestamp'
+    metadata:
+      type: object
+      description: Метаданные уведомления
+      properties:
+        source_service:
+          type: string
+          description: Сервис-источник
+          example: "device-service"
+        source_event:
+          type: string
+          description: Исходное событие
+          example: "motion.detected"
+        retry_count:
+          type: integer
+          description: Количество попыток отправки
+          default: 0
+      additionalProperties: true
+
+examples:
+  - name: Push Notification Example
+    summary: Пример push-уведомления о движении
+    payload:
+      notificationId: "notif-123"
+      userId: "user-123"
+      channel: "push"
+      type: "motion_detected"
+      title: "Движение в гостиной"
+      body: "Датчик движения обнаружил активность в 22:30"
+      priority: "high"
+      data:
+        device_id: "sensor-living"
+        room: "living_room"
+        timestamp: "2026-03-04T22:30:00Z"
+      template: "motion_alert"
+      template_data:
+        room: "living_room"
+        time: "22:30"
+      timestamp: "2026-03-04T22:30:05Z"
+      metadata:
+        source_service: "device-service"
+        source_event: "motion.detected"
+
+  - name: Email Notification Example
+    summary: Пример email-уведомления с еженедельным отчётом
+    payload:
+      notificationId: "notif-124"
+      userId: "user-123"
+      channel: "email"
+      type: "weekly_report"
+      title: "Еженедельный отчёт"
+      body: "Ваш еженедельный отчёт за неделю 8 готов"
+      priority: "normal"
+      data:
+        report_url: "https://api.smarthome.com/reports/week-08.pdf"
+        week: "8"
+        summary:
+          avg_temperature: 23.5
+          energy_consumption: 45.2
+          events: 128
+      template: "weekly_report"
+      template_data:
+        week: "8"
+        report_url: "https://api.smarthome.com/reports/week-08.pdf"
+      timestamp: "2026-03-04T08:00:00Z"
+      metadata:
+        source_service: "analytics-service"
+
+  - name: Battery Low Alert Example
+    summary: Пример уведомления о низком заряде батареи
+    payload:
+      notificationId: "notif-125"
+      userId: "user-123"
+      channel: "push"
+      type: "battery_low"
+      title: "Низкий заряд батареи"
+      body: "Устройство Bedroom Sensor имеет 15% заряда"
+      priority: "normal"
+      data:
+        device_id: "temp-bedroom"
+        device_name: "Bedroom Sensor"
+        battery: 15
+        estimated_days_left: 7
+      template: "battery_alert"
+      template_data:
+        device_name: "Bedroom Sensor"
+        battery: 15
+      timestamp: "2026-03-04T18:00:00Z"
+      metadata:
+        source_service: "device-service"
+        source_event: "battery.low"

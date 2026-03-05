@@ -1,0 +1,195 @@
+syntax = "proto3";
+
+package automation;
+option go_package = "./proto/automation;automation";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service AutomationService {
+    // Создание сценария
+    rpc CreateScenario(CreateScenarioRequest) returns (Scenario);
+    
+    // Получение сценария
+    rpc GetScenario(GetScenarioRequest) returns (Scenario);
+    
+    // Обновление сценария
+    rpc UpdateScenario(UpdateScenarioRequest) returns (Scenario);
+    
+    // Удаление сценария
+    rpc DeleteScenario(DeleteScenarioRequest) returns (google.protobuf.Empty);
+    
+    // Запуск сценария
+    rpc ExecuteScenario(ExecuteScenarioRequest) returns (ExecuteScenarioResponse);
+    
+    // Получение списка сценариев пользователя
+    rpc ListUserScenarios(ListUserScenariosRequest) returns (ListUserScenariosResponse);
+}
+
+enum ConditionType {
+    DEVICE_STATE = 0;
+    TIME = 1;
+    TELEMETRY = 2;
+    AND = 3;
+    OR = 4;
+    NOT = 5;
+    SUN = 6;
+}
+
+enum ActionType {
+    DEVICE_COMMAND = 0;
+    NOTIFICATION = 1;
+    DELAY = 2;
+    WEBHOOK = 3;
+    SCENE = 4;
+    PARALLEL = 5;
+}
+
+enum ComparisonOperator {
+    EQ = 0;
+    NE = 1;
+    GT = 2;
+    LT = 3;
+    GTE = 4;
+    LTE = 5;
+}
+
+message Condition {
+    string id = 1;
+    ConditionType type = 2;
+    string device_id = 3;
+    string property = 4;
+    ComparisonOperator operator = 5;
+    google.protobuf.Value value = 6;
+    string cron = 7;                                      // для TIME условий
+    string timezone = 8;
+    repeated Condition sub_conditions = 9;                 // для AND/OR/NOT
+    int32 for_seconds = 10;                                // условие должно выполняться N секунд
+    string metric = 11;                                    // для TELEMETRY условий
+    double threshold = 12;                                 // пороговое значение
+    string event = 13;                                     // для SUN условий ("sunrise", "sunset")
+    int32 offset_minutes = 14;                             // смещение для SUN условий
+}
+
+message Action {
+    string id = 1;
+    ActionType type = 2;
+    string device_id = 3;
+    string command = 4;
+    google.protobuf.Struct parameters = 5;
+    string template = 6;                                   // для NOTIFICATION
+    google.protobuf.Struct data = 7;                       // для NOTIFICATION
+    int32 seconds = 8;                                     // для DELAY
+    string url = 9;                                        // для WEBHOOK
+    string method = 10;                                    // для WEBHOOK
+    google.protobuf.Struct body = 11;                      // для WEBHOOK
+    string scene_id = 12;                                  // для SCENE
+    repeated Action actions = 13;                          // для PARALLEL
+}
+
+message Trigger {
+    string id = 1;
+    ConditionType type = 2;
+    string cron = 3;                                       // для TIME
+    string timezone = 4;                                   // для TIME
+    string device_id = 5;                                  // для DEVICE_STATE
+    string property = 6;                                   // для DEVICE_STATE
+    ComparisonOperator operator = 7;                       // для DEVICE_STATE
+    google.protobuf.Value value = 8;                       // для DEVICE_STATE
+    string metric = 9;                                     // для TELEMETRY
+    double threshold = 10;                                 // для TELEMETRY
+    string event = 11;                                     // для SUN
+    int32 offset_minutes = 12;                             // для SUN
+}
+
+message Scenario {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string user_id = 4;
+    bool enabled = 5;
+    repeated Trigger triggers = 6;
+    repeated Condition conditions = 7;
+    repeated Action actions = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+    int32 execution_count = 11;
+    google.protobuf.Timestamp last_executed = 12;
+}
+
+message CreateScenarioRequest {
+    string name = 1;
+    string description = 2;
+    string user_id = 3;
+    repeated Trigger triggers = 4;
+    repeated Condition conditions = 5;
+    repeated Action actions = 6;
+    bool enabled = 7;
+}
+
+message GetScenarioRequest {
+    string scenario_id = 1;
+    string user_id = 2;
+}
+
+message UpdateScenarioRequest {
+    string scenario_id = 1;
+    string user_id = 2;
+    string name = 3;
+    string description = 4;
+    repeated Trigger triggers = 5;
+    repeated Condition conditions = 6;
+    repeated Action actions = 7;
+    bool enabled = 8;
+}
+
+message DeleteScenarioRequest {
+    string scenario_id = 1;
+    string user_id = 2;
+}
+
+message ExecuteScenarioRequest {
+    string scenario_id = 1;
+    string user_id = 2;
+    bool dry_run = 3;
+    google.protobuf.Struct context = 4;
+}
+
+message ActionResult {
+    string action_id = 1;
+    string type = 2;
+    bool success = 3;
+    string message = 4;
+    google.protobuf.Struct result = 5;
+    int32 duration_ms = 6;
+}
+
+message ExecuteScenarioResponse {
+    string execution_id = 1;
+    string scenario_id = 2;
+    string scenario_name = 3;
+    string status = 4;                                     // "completed", "failed", "partial"
+    google.protobuf.Timestamp started_at = 5;
+    google.protobuf.Timestamp completed_at = 6;
+    int32 duration_ms = 7;
+    string trigger = 8;                                    // "manual", "schedule", "event"
+    repeated ActionResult actions = 9;
+    int32 success_count = 10;
+    int32 failure_count = 11;
+    string summary = 12;
+}
+
+message ListUserScenariosRequest {
+    string user_id = 1;
+    bool only_enabled = 2;
+    int32 page = 3;
+    int32 page_size = 4;
+}
+
+message ListUserScenariosResponse {
+    repeated Scenario scenarios = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 page_size = 4;
+}

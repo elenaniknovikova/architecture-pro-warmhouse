@@ -1,0 +1,15 @@
+description: Канал для событий, связанных с устройствами
+subscribe:
+  summary: Получение событий устройств
+  operationId: onDeviceEvent
+  message:
+    $ref: '../components/messages/DeviceEvent.yaml'
+bindings:
+  kafka:
+    topic: device-events
+    partitions: 3
+    replicas: 1
+    topicConfiguration:
+      cleanup.policy: delete
+      retention.ms: 604800000 # 7 дней
+      retention.bytes: 1073741824 # 1 ГБ

@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package telemetry;
+option go_package = "./proto/telemetry;telemetry";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+service TelemetryService {
+    // Получение последних показаний
+    rpc GetLatestTelemetry(GetLatestRequest) returns (GetLatestResponse);
+    
+    // Получение истории показаний
+    rpc GetTelemetryHistory(GetHistoryRequest) returns (GetHistoryResponse);
+    
+    // Запись телеметрии
+    rpc WriteTelemetry(WriteTelemetryRequest) returns (WriteTelemetryResponse);
+}
+
+message TelemetryPoint {
+    google.protobuf.Timestamp timestamp = 1;
+    map<string, double> numeric_metrics = 2;
+    map<string, string> string_metrics = 3;
+    map<string, bool> boolean_metrics = 4;
+}
+
+message GetLatestRequest {
+    string device_id = 1;
+    repeated string metrics = 2;                         // список метрик (опционально)
+    int32 max_age_seconds = 3;                            // максимальный возраст данных
+}
+
+message GetLatestResponse {
+    string device_id = 1;
+    TelemetryPoint data = 2;
+    bool from_cache = 3;
+}
+
+message GetHistoryRequest {
+    string device_id = 1;
+    google.protobuf.Timestamp from = 2;
+    google.protobuf.Timestamp to = 3;
+    repeated string metrics = 4;
+    int32 limit = 5;
+}
+
+message GetHistoryResponse {
+    string device_id = 1;
+    repeated TelemetryPoint points = 2;
+    int32 total = 3;
+}
+
+message WriteTelemetryRequest {
+    string device_id = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    map<string, double> numeric_metrics = 3;
+    map<string, string> string_metrics = 4;
+    map<string, bool> boolean_metrics = 5;
+    string source = 6;                                    // "device", "integration", "simulator"
+}
+
+message WriteTelemetryResponse {
+    bool success = 1;
+    int32 points_written = 2;
+    repeated string alerts = 3;                           // сработавшие алерты
+}

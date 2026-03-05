@@ -1,0 +1,178 @@
+openapi: 3.0.0
+info:
+  title: Smart Home API
+  description: |
+    # Smart Home API
+    
+    Полная спецификация API для экосистемы умного дома.
+    
+    ## Микросервисы:
+    * **Auth Service** - аутентификация и управление пользователями
+    * **Device Service** - управление устройствами
+    * **Notification Service** - уведомления
+    * **Automation Service** - сценарии автоматизации
+    
+    ## Базовый URL
+    Все запросы направляются через API Gateway:
+    `https://api.smarthome.com/v1`
+    
+    ## Аутентификация
+    Большинство эндпоинтов требуют JWT токен в заголовке `Authorization: Bearer {token}`.
+    Получите токен через `/auth/login` или `/auth/register`.
+  version: 1.0.0
+  contact:
+    name: Smart Home Team
+    email: dev@smarthome.com
+
+servers:
+  - url: https://api.smarthome.com/v1
+    description: Production server
+  - url: http://localhost:8080/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: Регистрация, вход и управление пользователями
+  - name: Devices
+    description: Управление устройствами умного дома
+  - name: Notifications
+    description: Уведомления и настройки
+  - name: Scenarios
+    description: Сценарии автоматизации
+
+paths:
+  # Auth endpoints
+  /auth/register:
+    $ref: './paths/security.yaml#/paths/~1register'
+  /auth/login:
+    $ref: './paths/security.yaml#/paths/~1login'
+  /auth/logout:
+    $ref: './paths/security.yaml#/paths/~1logout'
+  /auth/refresh:
+    $ref: './paths/security.yaml#/paths/~1refresh'
+  /auth/verify:
+    $ref: './paths/security.yaml#/paths/~1verify'
+  /auth/validate:
+    $ref: './paths/security.yaml#/paths/~1validate'
+  /auth/password-reset/request:
+    $ref: './paths/security.yaml#/paths/~1password-reset~1request'
+  /auth/password-reset/confirm:
+    $ref: './paths/security.yaml#/paths/~1password-reset~1confirm'
+  
+  # User endpoints
+  /users/me:
+    $ref: './paths/security.yaml#/paths/~1users~1me'
+  /users/{userId}:
+    $ref: './paths/security.yaml#/paths/~1users~1{userId}'
+  /users:
+    $ref: './paths/security.yaml#/paths/~1users'
+  
+  # API Keys endpoints
+  /apikeys:
+    $ref: './paths/security.yaml#/paths/~1apikeys'
+  /apikeys/{keyId}:
+    $ref: './paths/security.yaml#/paths/~1apikeys~1{keyId}'
+  /apikeys/{keyId}/refresh:
+    $ref: './paths/security.yaml#/paths/~1apikeys~1{keyId}~1refresh'
+  
+  # Roles endpoints
+  /roles:
+    $ref: './paths/security.yaml#/paths/~1roles'
+  /roles/{roleId}/assign:
+    $ref: './paths/security.yaml#/paths/~1roles~1{roleId}~1assign'
+  /roles/{roleId}/revoke:
+    $ref: './paths/security.yaml#/paths/~1roles~1{roleId}~1revoke'
+  
+  # Device endpoints
+  /devices:
+    $ref: './paths/devices.yaml#/paths/~1devices'
+  /devices/{deviceId}:
+    $ref: './paths/devices.yaml#/paths/~1devices~1{deviceId}'
+  /devices/{deviceId}/state:
+    $ref: './paths/devices.yaml#/paths/~1devices~1{deviceId}~1state'
+  /models:
+    $ref: './paths/devices.yaml#/paths/~1models'
+  
+  # Notification endpoints
+  /notifications:
+    $ref: './paths/notifications.yaml#/paths/~1notifications'
+  /notifications/mark-read:
+    $ref: './paths/notifications.yaml#/paths/~1notifications~1mark-read'
+  /notifications/{notificationId}:
+    $ref: './paths/notifications.yaml#/paths/~1notifications~1{notificationId}'
+  /notifications/preferences:
+    $ref: './paths/notifications.yaml#/paths/~1notifications~1preferences'
+  /templates:
+    $ref: './paths/notifications.yaml#/paths/~1templates'
+  /templates/{templateId}:
+    $ref: './paths/notifications.yaml#/paths/~1templates~1{templateId}'
+  
+  # Scenario endpoints
+  /scenarios:
+    $ref: './paths/scenarios.yaml#/paths/~1scenarios'
+  /scenarios/{scenarioId}:
+    $ref: './paths/scenarios.yaml#/paths/~1scenarios~1{scenarioId}'
+  /scenarios/{scenarioId}/toggle:
+    $ref: './paths/scenarios.yaml#/paths/~1scenarios~1{scenarioId}~1toggle'
+  /scenarios/{scenarioId}/execute:
+    $ref: './paths/scenarios.yaml#/paths/~1scenarios~1{scenarioId}~1execute'
+  /executions:
+    $ref: './paths/scenarios.yaml#/paths/~1executions'
+  /executions/{executionId}:
+    $ref: './paths/scenarios.yaml#/paths/~1executions~1{executionId}'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен, полученный при аутентификации
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP код ошибки
+          example: 400
+        message:
+          type: string
+          description: Сообщение об ошибке
+          example: "Invalid request format"
+        details:
+          type: string
+          description: Дополнительные детали
+          example: "Missing required field: name"
+
+    # Общие схемы для переиспользования
+    PaginationParams:
+      type: object
+      properties:
+        limit:
+          type: integer
+          description: Количество записей на странице
+          default: 20
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          description: Смещение для пагинации
+          default: 0
+
+    PaginationResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Общее количество записей
+        limit:
+          type: integer
+          description: Запрошенный лимит
+        offset:
+          type: integer
+          description: Запрошенное смещение
+
+security:
+  - bearerAuth: []

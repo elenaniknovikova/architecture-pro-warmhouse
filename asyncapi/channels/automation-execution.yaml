@@ -1,0 +1,19 @@
+description: Канал для событий выполнения сценариев автоматизации
+subscribe:
+  summary: Получение событий о выполнении сценариев
+  operationId: onAutomationExecution
+  message:
+    $ref: '../components/messages/AutomationExecution.yaml'
+publish:
+  summary: Публикация результатов выполнения сценария
+  operationId: publishAutomationExecution
+  message:
+    $ref: '../components/messages/AutomationExecution.yaml'
+bindings:
+  kafka:
+    topic: automation-execution
+    partitions: 2
+    replicas: 1
+    topicConfiguration:
+      cleanup.policy: delete
+      retention.ms: 259200000 # 3 дня
