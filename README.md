@@ -171,7 +171,16 @@
 ### 2. Документация API
 
 Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+## 2. Документация API
 
+Здесь приложите ссылки на документацию API для микросервисов, которые вы спроектировали в первой части проектной работы. Для документирования используйте Swagger/OpenAPI или AsyncAPI.
+
+*   **[OpenAPI (REST) спецификация] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/openapi/openapi.yaml)**
+*   **[AsyncAPI (Kafka события) спецификация] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/asyncapi/asyncapi.yaml)**
+*   **[gRPC (Protocol Buffers) определения] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/tree/main/proto)**
+*   **[Пошаговые сценарии использования] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/tree/main/docs)**
+*   **[Postman коллекция для тестирования] (https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/postman/smart-home-api.postman_collection.json)**
+*   
 # Задание 5. Работа с docker и docker-compose
 
 Перейдите в apps.
