@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # База данных PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: smart_home_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: smart_home
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/smart_home/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smart-home-network
+
+  # Монолитное приложение (smart_home)
+  smart_home:
+    build: ./apps/smart_home
+    container_name: smart_home_app
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=smart_home
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - TEMPERATURE_API_URL=http://temperature-api:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - smart-home-network
+
+  # Новый микросервис температуры
+  temperature-api:
+    build: ./temperature-api
+    container_name: temperature_api
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - smart-home-network
+
+networks:
+  smart-home-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

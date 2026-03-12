@@ -187,54 +187,47 @@
 
 Там находится приложение-монолит для работы с датчиками температуры. В README.md описано как запустить решение.
 
-Вам нужно:
+ ### Результаты выполнения
 
-1) сделать простое приложение temperature-api на любом удобном для вас языке программирования, которое при запросе /temperature?location= будет отдавать рандомное значение температуры.
+#### 1. Создан микросервис `temperature-api`
+- **Язык:** Node.js
+- **Порт:** 8081
+- **Эндпоинт:** `/temperature?location=`
+- **Функция:** генерация случайной температуры (-10 до +40°C)
+- **Логика:** 
+  - Если передан `location` → возвращается sensorId (Living Room → 1, Bedroom → 2, Kitchen → 3)
+  - Если передан `sensorId` → возвращается location
+  - Если ничего не передано → значения по умолчанию
 
-Locations - название комнаты, sensorId - идентификатор названия комнаты
 
-```
-	// If no location is provided, use a default based on sensor ID
-	if location == "" {
-		switch sensorID {
-		case "1":
-			location = "Living Room"
-		case "2":
-			location = "Bedroom"
-		case "3":
-			location = "Kitchen"
-		default:
-			location = "Unknown"
-		}
-	}
+#### 2. Docker-контейнеризация
+- Микросервис упакован в Docker ([`temperature-api/Dockerfile`](temperature-api/Dockerfile))
+- Общий `docker-compose.yml` в корне проекта объединяет все сервисы:
+  - `postgres` (база данных)
+  - `smart_home` (монолитное приложение)
+  - `temperature-api` (микросервис температуры)
 
-	// If no sensor ID is provided, generate one based on location
-	if sensorID == "" {
-		switch location {
-		case "Living Room":
-			sensorID = "1"
-		case "Bedroom":
-			sensorID = "2"
-		case "Kitchen":
-			sensorID = "3"
-		default:
-			sensorID = "0"
-		}
-	}
-```
+#### 4. Проверка через Postman
+Для тестирования монолита создана отдельная папка в коллекции **"Testing Monolith"** со следующими эндпоинтами:
 
-2) Приложение следует упаковать в Docker и добавить в docker-compose. Порт по умолчанию должен быть 8081
+| Метод  |            URL              |       Описание             |
+|--------|-----------------------------|----------------------------|
+| GET    | `/api/v1/sensors`           | Получить все датчики       |
+| GET    | `/api/v1/sensors/:id`       | Получить датчик по ID      |
+| POST   | `/api/v1/sensors`           | Создать новый датчик       |
+| PUT    | `/api/v1/sensors/:id`       | Обновить датчик полностью  |
+| DELETE | `/api/v1/sensors/:id`       | Удалить датчик             |
+| PATCH  | `/api/v1/sensors/:id/value` | Обновить значение и статус |
+| GET    | `/health`                   | Проверка работоспособности |
 
-3) Кроме того для smart_home приложения требуется база данных - добавьте в docker-compose файл настройки для запуска postgres с указанием скрипта инициализации ./smart_home/init.sql
+**Create Sensor** (POST /api/v1/sensors) — работает, возвращает 201 Created  
+**Get All Sensors** (GET /api/v1/sensors) — работает, возвращает 200 OK  
+При каждом запросе GET /api/v1/sensors температура меняется (интеграция с `temperature-api`)
 
-Для проверки можно использовать Postman коллекцию smarthome-api.postman_collection.json и вызвать:
-
-- Create Sensor
-- Get All Sensors
-
-Должно при каждом вызове отображаться разное значение температуры
-
-Ревьюер будет проверять точно так же.
+#### 5. Postman коллекция для тестирования
+- [Коллекция (проектная архитектура)]()
+- [Коллекция для монолита]()
+- [Окружение Postman]()
 
 
 # **Задание 6. Разработка MVP**

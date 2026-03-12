@@ -43,7 +43,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"name\": \"Living Room Light\",\r\n  \"type\": \"light\",\r\n  \"room\": \"living_room\",\r\n  \"metadata\": {\r\n    \"brand\": \"Philips\",\r\n    \"model\": \"Hue\"\r\n  }\r\n}",
+          "raw": "{\r\n \r\n  \"name\": \"Living Room Sensor\",\r\n  \"type\": \"temperature\",\r\n  \"location\": \"living_room\"\r\n\r\n}",
           "options": {
             "raw": {
               "language": "json"
@@ -51,63 +51,14 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/devices",
+          "raw": "{{baseurl}}/api/v1/devices",
           "host": [
-            "{{baseUrl}}"
+            "{{baseurl}}"
           ],
           "path": [
             "api",
             "v1",
             "devices"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "PATCH /api/v1/devices/{deviceId}/state",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"command\": \"turn_on\",\r\n  \"parameters\": {\r\n    \"brightness\": 80,\r\n    \"transition_ms\": 500\r\n  }\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/devices/{{deviceId}}/state?deviceId={{deviceId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "devices",
-            "{{deviceId}}",
-            "state"
-          ],
-          "query": [
-            {
-              "key": "deviceId",
-              "value": "{{deviceId}}",
-              "description": "ID устройства (подставится из переменной)",
-              "type": "text"
-            }
           ]
         }
       },
@@ -125,9 +76,9 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/telemetry/devices/{{deviceId}}/current?deviceId={{deviceId}}",
+          "raw": "{{baseurl}}/api/v1/telemetry/devices/{{deviceId}}/current?deviceId={{deviceId}}",
           "host": [
-            "{{baseUrl}}"
+            "{{baseurl}}"
           ],
           "path": [
             "api",
@@ -174,9 +125,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/scenarios/{{scenarioId}}/execute?scenarioId={{scenarioId}}",
+          "raw": "{{baseurl}}/api/v1/scenarios/{{scenarioId}}/execute?scenarioId={{scenarioId}}",
           "host": [
-            "{{baseUrl}}"
+            "{{baseurl}}"
           ],
           "path": [
             "api",
@@ -222,9 +173,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/notifications/send",
+          "raw": "{{baseurl}}/api/v1/notifications/send",
           "host": [
-            "{{baseUrl}}"
+            "{{baseurl}}"
           ],
           "path": [
             "api",
@@ -235,6 +186,56 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "PATCH /api/v1/devices/{deviceId}/state",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"command\": \"turn_on\",\r\n  \"parameters\": {\r\n    \"brightness\": 80,\r\n    \"transition_ms\": 500\r\n  \r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseurl}}/api/v1/devices/{{deviceId}}/state",
+          "host": [
+            "{{baseurl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "devices",
+            "{{deviceId}}",
+            "state"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "deviceId",
+      "value": ""
     }
   ]
 }
