@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Project_template
 
 Это шаблон для решения проектной работы. Структура этого файла повторяет структуру заданий. Заполняйте его по мере работы над решением.
@@ -226,19 +225,175 @@
 При каждом запросе GET /api/v1/sensors температура меняется (интеграция с `temperature-api`)
 
 #### 5. Postman коллекция для тестирования
-- [Коллекция (проектная архитектура)]()
-- [Коллекция для монолита]()
-- [Окружение Postman]()
+- [Коллекция (проектная архитектура)](https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/postman/Smart%20Home%20API.postman_collection.json)
+- [Коллекция для монолита](https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/postman/Smart%20Home%20Monolith.postman_collection.json)
+- [Окружение Postman](https://github.com/elenaniknovikova/architecture-pro-warmhouse/blob/main/postman/Smart%20Home%20Monolith.postman_collection.json)
 
 
-# **Задание 6. Разработка MVP**
+## Задание 6. Разработка MVP
 
-Необходимо создать новые микросервисы и обеспечить их интеграции с существующим монолитом для плавного перехода к микросервисной архитектуре. 
+### Результаты выполнения
 
-### **Что нужно сделать**
+#### 1. Созданы новые микросервисы
 
-1. Создайте новые микросервисы для управления телеметрией и устройствами (с простейшей логикой), которые будут интегрированы с существующим монолитным приложением. Каждый микросервис на своем ООП языке.
-2. Обеспечьте взаимодействие между микросервисами и монолитом (при желании с помощью брокера сообщений), чтобы постепенно перенести функциональность из монолита в микросервисы. 
+| Микросервис       | Язык    | Порт |          Назначение             |
+|-------------------|---------|------|---------------------------------|
+| `temperature-api` | Node.js | 8081 | Генерация случайной температуры |
+| `device-service`  | Go      | 8082 | Управление устройствами (CRUD)  |
 
-В результате у вас должны быть созданы Dockerfiles и docker-compose для запуска микросервисов. 
+#### 2. Структура микросервисов
 
+- **temperature-api** (`/temperature-api`)
+  - `GET /temperature?location=` — случайная температура
+  - `GET /health` — проверка работоспособности
+
+- **device-service** (`/device-service`)
+  - `POST /api/v1/devices` — создание устройства
+  - `GET /api/v1/devices` — список всех устройств
+  - `GET /api/v1/devices/{id}` — получение устройства по ID
+  - `PUT /api/v1/devices/{id}` — обновление устройства
+  - `DELETE /api/v1/devices/{id}` — удаление устройства
+
+#### 3. Docker-контейнеризация
+
+Все сервисы описаны в общем `docker-compose.yml`:
+
+```yaml
+services:
+  postgres       # база данных
+  smart_home     # монолит (Go)
+  temperature-api # микросервис температуры (Node.js)
+  device-service  # микросервис устройств (Go)
+  ```markdown
+
+
+Запуск всех сервисов одной командой:
+```bash
+docker compose up --build
+```
+
+#### 4. Взаимодействие между микросервисами и монолитом
+
+**Схема взаимодействия:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         docker-compose                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐     HTTP      ┌─────────────────┐              │
+│  │   Монолит   │ ────────────> │ temperature-api │              │
+│  │ (smart_home)│   /temperature│   (порт 8081)   │              │
+│  │  (порт 8080)│   ?location=  └─────────────────┘              │
+│  └─────────────┘                                                │
+│         │                                                       │
+│         │ (планируется в будущем)                               │
+│         ▼                                                       │
+│  ┌─────────────────┐                                            │
+│  │  device-service │                                            │
+│  │   (порт 8082)   │                                            │
+│  └─────────────────┘                                            │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Текущая интеграция:**
+- При запросе `GET /api/v1/sensors` монолит обращается к `temperature-api` (через переменную окружения `TEMPERATURE_API_URL`) для получения случайной температуры каждого датчика
+- Это демонстрирует плавный переход от монолита к микросервисной архитектуре (Strangler Pattern)
+
+**Код интеграции в монолите (`apps/smart_home/services/temperature.go`):**
+```go
+type TemperatureService struct {
+    apiURL string
+}
+
+func (s *TemperatureService) GetTemperature(location string) (float64, error) {
+    resp, err := http.Get(fmt.Sprintf("%s/temperature?location=%s", s.apiURL, location))
+    // ...
+}
+```
+
+#### 5. Проверка работы
+
+**Запуск всех сервисов:**
+```bash
+docker compose up --build
+```
+
+**Проверка temperature-api:**
+```bash
+# По названию комнаты
+curl "http://localhost:8081/temperature?location=Living%20Room"
+
+# По ID датчика
+curl "http://localhost:8081/temperature?sensorId=1"
+
+# Проверка здоровья
+
+
+curl http://localhost:8081/health
+```
+
+**Проверка device-service:**
+```bash
+# Health check
+curl http://localhost:8082/health
+
+# Создать устройство
+curl -X POST http://localhost:8082/api/v1/devices -H "Content-Type: application/json" -d '{"name":"Living Room Light","type":"light","room":"living_room","user_id":"user-123"}'
+
+# Получить список устройств
+curl http://localhost:8082/api/v1/devices
+
+# Получить устройство по ID
+# Первое устройство
+curl http://localhost:8082/api/v1/devices/d4175e88-7acf-4301-920d-c8b7c1203542
+
+
+
+# Обновить устройство
+curl -X POST http://localhost:8082/api/v1/devices -H "Content-Type: application/json" -d '{"name":"Living Room Light","type":"light","room":"living_room","user_id":"user-123"}'
+
+# Удалить устройство
+curl -X DELETE http://localhost:8082/api/v1/devices/d32d61ff-4003-4ce7-a94f-771e66c250c6
+```
+
+**Проверка монолита (с интеграцией temperature-api):**
+```bash
+# Получить все датчики — температура генерируется temperature-api
+curl http://localhost:8080/api/v1/sensors
+
+# Создать новый датчик
+curl -X POST http://localhost:8080/api/v1/sensors -H "Content-Type: application/json" -d '{"name":"Office Sensor","type":"temperature","sensorId":"4","location":"Office"}'
+```
+
+#### 6. Брокер сообщений (опционально)
+
+Для будущей асинхронной коммуникации подготовлена инфраструктура Kafka:
+
+**Топики:**
+- `device-events` — события устройств (создание, удаление, изменение статуса)
+- `telemetry-raw` — сырые данные телеметрии
+- `automation-execution` — события выполнения сценариев
+
+**AsyncAPI спецификация:** [./asyncapi/asyncapi.yaml](./asyncapi/asyncapi.yaml)
+
+#### 7. Postman коллекции
+
+Для тестирования подготовлены коллекции Postman:
+
+- [Коллекция (проектная архитектура)](./postman/Smart%20Home%20API.postman_collection.json) — все эндпоинты микросервисов
+- [Коллекция для монолита](./postman/Smart%20Home%20Monolith.postman_collection.json) — тестирование датчиков
+- [Окружение Postman](./postman/Smart%20Home%20API.postman_environment.json) — переменные окружения
+
+#### 8. Вывод
+
+**Задание 6 выполнено в полном объёме:**
+
+- ✅ Созданы два микросервиса на разных ООП языках:
+  - `temperature-api` (Node.js) — для телеметрии
+  - `device-service` (Go) — для управления устройствами
+- ✅ Настроена интеграция монолита с `temperature-api`
+- ✅ Все сервисы упакованы в Docker
+- ✅ Общий `docker-compose.yml` позволяет запускать всю систему одной командой
+- ✅ Подготовлена инфраструктура для будущего расширения (Kafka, AsyncAPI)
+```

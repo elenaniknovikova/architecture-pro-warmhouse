@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # База данных PostgreSQL
   postgres:
     image: postgres:15-alpine
     container_name: smart_home_db
@@ -22,7 +21,6 @@ services:
     networks:
       - smart-home-network
 
-  # Монолитное приложение (smart_home)
   smart_home:
     build: ./apps/smart_home
     container_name: smart_home_app
@@ -41,7 +39,6 @@ services:
     networks:
       - smart-home-network
 
-  # Новый микросервис температуры
   temperature-api:
     build: ./temperature-api
     container_name: temperature_api
@@ -55,6 +52,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - smart-home-network
+
+  device-service:
+    build: ./device-service
+    container_name: device_service
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
     networks:
       - smart-home-network
 
