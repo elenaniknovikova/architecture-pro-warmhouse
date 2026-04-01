@@ -397,3 +397,4 @@ curl -X POST http://localhost:8080/api/v1/sensors -H "Content-Type: application/
 - Общий `docker-compose.yml` позволяет запускать всю систему одной командой
 - Подготовлена инфраструктура для будущего расширения (Kafka, AsyncAPI)
 ```
+<!-- PR для проверки -->
